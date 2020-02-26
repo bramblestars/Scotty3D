@@ -7,13 +7,45 @@
 namespace CMU462 {
 
 VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
-  // TODO: (meshEdit)
-  // This method should split the given edge and return an iterator to the
-  // newly inserted vertex. The halfedge of this vertex should point along
-  // the edge that was split, rather than the new edges.
+    // TODO: (meshEdit)
+    // This method should split the given edge and return an iterator to the
+    // newly inserted vertex. The halfedge of this vertex should point along
+    // the edge that was split, rather than the new edges.
 
-  showError("splitEdge() not implemented.");
-  return VertexIter();
+    HalfedgeIter h1 = e0->halfedge();
+    HalfedgeIter h1_twin = h1->twin();
+
+    VertexIter v1 = h1->vertex();
+    VertexIter v2 = h1_twin->vertex();
+
+    //new vertex added to midpoint
+    VertexIter v = newVertex();
+    v->position = 0.5 * (v1->position + v2->position);
+
+    //create new edge and two new halfedges
+    EdgeIter e1 = newEdge();
+    HalfedgeIter h2 = newHalfedge(); //pointing in same direction as h1
+    HalfedgeIter h2_twin = newHalfedge(); 
+
+    h2->twin() = h2_twin;
+    h2->next() = h1;
+    h2->vertex() = v1;
+    h2->edge() = e1;
+    h2->face() = h1->face();
+
+    h2_twin->twin() = h2;
+    h2_twin->next() = h1_twin->next();
+    h2_twin->vertex() = v;
+    h2_twin->edge() = e1;
+    h2_twin->face() = h1_twin->face();
+
+    e1->halfedge() = h2;
+
+    //modify the old halfedges
+    h1->vertex() = v;
+    h1_twin->next = h2_twin;
+
+    return VertexIter();
 }
 
 VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
