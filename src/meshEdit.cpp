@@ -19,10 +19,18 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     HalfedgeIter h1 = e0->halfedge();
     HalfedgeIter h1_twin = h1->twin();
 
+    // Ensures only h1 can be a boundary halfedge
+    assert(!(h1->isBoundary() && h1_twin->isBoundary()));
+    if (h1_twin->isBoundary()) {
+        h1 = h1_twin;
+        h1_twin = h1->twin();
+    }
+    
+    bool on_boundary = h1->isBoundary();
     bool triangle1 = isTriangle(h1->face());
     bool triangle2 = isTriangle(h1_twin->face());
 
-    if (!triangle1 || !triangle2) {
+    if ((!triangle1 && !on_boundary) || !triangle2) {
         return h1->vertex();
     }
 
@@ -51,6 +59,11 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     VertexIter v3 = h1->next()->twin()->vertex();
     VertexIter v4 = h1_twin->next()->twin()->vertex();
 
+    HalfedgeIter v1_in = h1_twin;
+    do {
+        v1_in = v1_in->next()->twin();
+    } while (v1_in->next() != h1);
+
     //new vertex added to midpoint
     VertexIter v = newVertex();
     v->position = e0->centroid();
@@ -59,7 +72,12 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     FaceIter f1, f2;
 
     //create 2 new faces
-    f1 = newFace();
+    if (!on_boundary) {
+        f1 = newFace();
+    }
+    else {
+        f1 = h1->face();
+    }
     f2 = newFace();
 
     //this new edge goes along half of the original e0
@@ -78,11 +96,21 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     f2->halfedge() = h2_twin;
 
     h1->vertex() = v;
-    h1->next()->next()->next() = h2;
-    h1_twin->next() = h2_twin;
+    if (!on_boundary) {
+        h1->next()->next()->next() = h2;
+        h1_twin->next() = h2_twin;
+    }
+
+    else {
+        v1_in->next() = h2;
+    }
+    
+    v->halfedge() = h1;
+    v1->halfedge() = h2;
+    v2->halfedge() = h1_twin;
 
     //this new edge splits the old face of h1
-    if (!h1->isBoundary()) {
+    if (!on_boundary) {
         HalfedgeIter split1 = newHalfedge();
         HalfedgeIter split1_twin = newHalfedge();
         EdgeIter f1_split = newEdge();
@@ -96,20 +124,18 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     }
     
     //this new edge splits the old face of h1's twin
-    if (!h1_twin->isBoundary()) {
-        HalfedgeIter split2 = newHalfedge();
-        HalfedgeIter split2_twin = newHalfedge();
-        EdgeIter f2_split = newEdge();
-        f2_split->halfedge() = split2;
-        f2->halfedge() = split2_twin;
+    HalfedgeIter split2 = newHalfedge();
+    HalfedgeIter split2_twin = newHalfedge();
+    EdgeIter f2_split = newEdge();
+    f2_split->halfedge() = split2;
+    f2->halfedge() = split2_twin;
 
-        split2->setNeighbors(h2_twin->next()->next(), split2_twin, v,
-            f2_split, h1_twin->face());
-        split2_twin->setNeighbors(h2->twin(), split2, v4, f2_split, f2);
+    split2->setNeighbors(h2_twin->next()->next(), split2_twin, v,
+        f2_split, h1_twin->face());
+    split2_twin->setNeighbors(h2->twin(), split2, v4, f2_split, f2);
 
-        h1_twin->next() = split2;
-        h2_twin->next()->next() = split2_twin;
-    }
+    h1_twin->next() = split2;
+    h2_twin->next()->next() = split2_twin;
 
     checkConsistency();
 
@@ -161,6 +187,7 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
     deleteHalfedge(h);
     deleteHalfedge(h_twin);
 
+    // delete some stuff if we're collapsing edges incident to triangles
     if (triangle_h) {
         v1_in->next() = v2_out->twin()->next();
         v1_in->face() = v1_in->next()->face();
@@ -202,10 +229,8 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
         deleteHalfedge(v1_out);
     } 
 
-
     deleteVertex(v2);
 
-    OutputDebugStringA("checking consistency in collapse edge\n");
     checkConsistency();
 
     return v1;
@@ -280,19 +305,23 @@ FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
     deleteHalfedge(h);
     deleteHalfedge(h_twin);
     
-    OutputDebugStringA("Checking consistency in eraseEdge\n");
     checkConsistency();
 
     return f1;
 }
 
 EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
-  // TODO: (meshEdit)
-  // This method should flip the given edge and return an iterator to the
-  // flipped edge.
+    // TODO: (meshEdit)
+    // This method should flip the given edge and return an iterator to the
+    // flipped edge.
 
-  showError("flipEdge() not implemented.");
-  return EdgeIter();
+    HalfedgeIter h = e0->halfedge();
+    HalfedgeIter h_twin = h->twin();
+
+    FaceIter f1 = h->face();
+    FaceIter f2 = h_twin->face();
+
+    return e0;
 }
 
 void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
