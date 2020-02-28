@@ -879,14 +879,16 @@ Info Halfedge::getInfo() {
 
 void HalfedgeMesh::checkConsistency() const {
 	// Check whether each halfedge's twin does not point to itself
+    OutputDebugStringA("checking twins\n");
 	for (HalfedgeCIter h = halfedgesBegin(); h != halfedgesEnd(); h++) {
 		if (h->twin() == h) {
-			OutputDebugStringA( "halfedge's twin points to itself!" );
+			OutputDebugStringA( "halfedge's twin points to itself!\n" );
 			exit(1);
 		}
 	}
 
 	// Check whether each halfedge's twin's twin points to itself
+    OutputDebugStringA( "checking twins' twins\n" );
 	for (HalfedgeCIter h = halfedgesBegin(); h != halfedgesEnd(); h++) {
 		if (h->twin()->twin() != h) {
 			OutputDebugStringA ( "halfedge's twin's twin does not point to itself!" );
@@ -895,6 +897,8 @@ void HalfedgeMesh::checkConsistency() const {
 	}
 
 	// Check whether each halfedge's next points to a unique halfedge
+
+    OutputDebugStringA("checking nexts\n");
 	map<HalfedgeCIter, bool> halfedgeCounter;
 	for (HalfedgeCIter h = halfedgesBegin(); h != halfedgesEnd(); h++) {
 		if (halfedgeCounter.find(h->next()) == halfedgeCounter.end()) {
@@ -907,6 +911,7 @@ void HalfedgeMesh::checkConsistency() const {
 	}
 
 	// Check whether each halfedge incident on a vertex points to that vertex
+    OutputDebugStringA("checking vertices\n");
 	for (VertexCIter v = verticesBegin(); v != verticesEnd(); v++) {
 		HalfedgeCIter h = v->halfedge();
 		do {
@@ -921,6 +926,7 @@ void HalfedgeMesh::checkConsistency() const {
 	}
 
 	// Check whether each halfedge incident on an edge points to that edge
+    OutputDebugStringA("checking edges\n");
 	for (EdgeCIter e = edgesBegin(); e != edgesEnd(); e++) {
 		HalfedgeCIter h = e->halfedge();
 		do {
@@ -934,6 +940,7 @@ void HalfedgeMesh::checkConsistency() const {
 	}
 
 	// Check whether each halfedge incident on a face points to that face
+    OutputDebugStringA("checking faces\n");
 	for (FaceCIter f = facesBegin(); f != facesEnd(); f++) {
 		HalfedgeCIter h = f->halfedge();
 		do {
@@ -947,6 +954,8 @@ void HalfedgeMesh::checkConsistency() const {
 	}
 
 	// Check whether each halfedge incident on a boundary loop points to that boundary loop
+
+    OutputDebugStringA("checking boundary loops\n");
 	for (FaceCIter b = boundariesBegin(); b != boundariesEnd(); b++) {
 		HalfedgeCIter h = b->halfedge();
 		do {

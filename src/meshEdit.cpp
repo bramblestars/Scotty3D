@@ -56,9 +56,11 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     v->position = e0->centroid();
     v->halfedge() = h1;
 
+    FaceIter f1, f2;
+
     //create 2 new faces
-    FaceIter f1 = newFace();
-    FaceIter f2 = newFace();
+    f1 = newFace();
+    f2 = newFace();
 
     //this new edge goes along half of the original e0
     HalfedgeIter h2 = newHalfedge();
@@ -80,30 +82,34 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     h1_twin->next() = h2_twin;
 
     //this new edge splits the old face of h1
-    HalfedgeIter split1 = newHalfedge();
-    HalfedgeIter split1_twin = newHalfedge();
-    EdgeIter f1_split = newEdge();
-    f1_split->halfedge() = split1;
+    if (!h1->isBoundary()) {
+        HalfedgeIter split1 = newHalfedge();
+        HalfedgeIter split1_twin = newHalfedge();
+        EdgeIter f1_split = newEdge();
+        f1_split->halfedge() = split1;
 
-    split1->setNeighbors(h1, split1_twin, v3, f1_split, h1->face());
-    split1_twin->setNeighbors(h1->next()->next(), split1, v, f1_split, f1);
+        split1->setNeighbors(h1, split1_twin, v3, f1_split, h1->face());
+        split1_twin->setNeighbors(h1->next()->next(), split1, v, f1_split, f1);
 
-    h2->next() = split1_twin;
-    h1->next()->next() = split1;
+        h2->next() = split1_twin;
+        h1->next()->next() = split1;
+    }
     
     //this new edge splits the old face of h1's twin
-    HalfedgeIter split2 = newHalfedge();
-    HalfedgeIter split2_twin = newHalfedge();
-    EdgeIter f2_split = newEdge();
-    f2_split->halfedge() = split2;
-    f2->halfedge() = split2_twin;
+    if (!h1_twin->isBoundary()) {
+        HalfedgeIter split2 = newHalfedge();
+        HalfedgeIter split2_twin = newHalfedge();
+        EdgeIter f2_split = newEdge();
+        f2_split->halfedge() = split2;
+        f2->halfedge() = split2_twin;
 
-    split2->setNeighbors(h2_twin->next()->next(), split2_twin, v, 
+        split2->setNeighbors(h2_twin->next()->next(), split2_twin, v,
             f2_split, h1_twin->face());
-    split2_twin->setNeighbors(h2->twin(), split2, v4, f2_split, f2);
+        split2_twin->setNeighbors(h2->twin(), split2, v4, f2_split, f2);
 
-    h1_twin->next() = split2;
-    h2_twin->next()->next() = split2_twin;
+        h1_twin->next() = split2;
+        h2_twin->next()->next() = split2_twin;
+    }
 
     checkConsistency();
 
@@ -121,49 +127,86 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
 
     v1->position = e->centroid();
 
-    OutputDebugStringA("a\n");
+    HalfedgeIter v1_out = h_twin->next();
+    HalfedgeIter v1_in = v1_out->twin();
+    do {
+        v1_in = v1_in->next()->twin();
+    } while (v1_in->next() != h);
 
-   // HalfedgeIter temp1, temp2;
+    HalfedgeIter v2_out = h->next();
+    HalfedgeIter v2_in = v2_out->twin();
+    do {
+        v2_in = v2_in->next()->twin();
+    } while (v2_in->next() != h_twin);
 
-    /*
-    if (isTriangle(h->face())) {
-        deleteEdge(h->next()->edge());
-        OutputDebugStringA("b\n");
-    }*/
+    bool triangle_h = isTriangle(h->face());
+    bool triangle_htwin = isTriangle(h_twin->face());
 
-    checkConsistency();
-
-    /*
-    if (isTriangle(h_twin->face())) {
-        deleteEdge(h_twin->next()->edge());
-        OutputDebugStringA("c\n");
-    }*/
-
-    /*
-    HalfedgeIter v1_iter = v1->halfedge();
-    HalfedgeIter v2_iter = v2->halfedge();
+    HalfedgeIter iter = v2->halfedge();
 
     do {
-        if (v1_iter != h) {
-            v1_iter->vertex() = v;
-            v1_iter = v1_iter->twin()->next();
-        }
-    } while (v1_iter != v1->halfedge());
+        iter->vertex() = v1;
+        iter = iter->twin()->next();
+    } while (iter != v2->halfedge());
 
-    do {
-        if (v2_iter != h_twin) {
-            v2_iter->vertex() = v;
-            v2_iter = v2_iter->twin()->next();
-        }
-    } while (v2_iter != v2->halfedge());
-   
-    deleteVertex(v1);
+    v1_in->next() = v2_out;
+    v2_in->next() = v1_out;
+
+    v1->halfedge() = v1_out;
+
+    h->face()->halfedge() = v1_in;
+    h_twin->face()->halfedge() = v2_in;
+
+    deleteEdge(e);
+    deleteHalfedge(h);
+    deleteHalfedge(h_twin);
+
+    if (triangle_h) {
+        v1_in->next() = v2_out->twin()->next();
+        v1_in->face() = v1_in->next()->face();
+        v1_in->face()->halfedge() = v1_in;
+
+        iter = v1_in->next();
+        do {
+            iter = iter->next();
+        } while (iter->next() != v2_out->twin());
+
+        iter->next() = v1_in;
+        v1_in->vertex()->halfedge() = v1_in;
+        v1->halfedge() = v1_in->twin();
+
+        deleteFace(v2_out->face()); 
+        deleteEdge(v2_out->edge());
+        deleteHalfedge(v2_out->twin());
+        deleteHalfedge(v2_out);
+    }
+
+    
+    if (triangle_htwin) {
+        v2_in->next() = v1_out->twin()->next();
+        v2_in->face() = v2_in->next()->face();
+        v2_in->face()->halfedge() = v2_in;
+
+        iter = v2_in->next();
+        do {
+            iter = iter->next();
+        } while (iter->next() != v1_out->twin());
+
+        iter->next() = v2_in;
+        v2_in->vertex()->halfedge() = v2_in;
+        v1->halfedge() = v2_in->twin();
+
+        deleteFace(v1_out->face());
+        deleteEdge(v1_out->edge());
+        deleteHalfedge(v1_out->twin());
+        deleteHalfedge(v1_out);
+    } 
+
+
     deleteVertex(v2);
 
+    OutputDebugStringA("checking consistency in collapse edge\n");
     checkConsistency();
-
-    return v;
-    */
 
     return v1;
 }
@@ -224,7 +267,7 @@ FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
 
     v1_halfedge2->next() = v1_halfedge1;
     v2_halfedge2->next() = v2_halfedge1;
-    
+
     //in case v1's halfedge is h or v2's halfedge is h_twin
     v1->halfedge() = v1_halfedge1;
     v2->halfedge() = v2_halfedge1;
@@ -237,6 +280,7 @@ FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
     deleteHalfedge(h);
     deleteHalfedge(h_twin);
     
+    OutputDebugStringA("Checking consistency in eraseEdge\n");
     checkConsistency();
 
     return f1;
