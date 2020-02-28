@@ -3,11 +3,15 @@
 #include "meshEdit.h"
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
+#include <windows.h>
 
 namespace CMU462 {
 
+bool isTriangle(FaceIter f) {
+    return f->halfedge()->next()->next()->next() == f->halfedge();
+}
+
 VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
-    // TODO: (meshEdit)
     // This method should split the given edge and return an iterator to the
     // newly inserted vertex. The halfedge of this vertex should point along
     // the edge that was split, rather than the new edges.
@@ -15,46 +19,153 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
     HalfedgeIter h1 = e0->halfedge();
     HalfedgeIter h1_twin = h1->twin();
 
+    bool triangle1 = isTriangle(h1->face());
+    bool triangle2 = isTriangle(h1_twin->face());
+
+    if (!triangle1 || !triangle2) {
+        return h1->vertex();
+    }
+
+    /* PICTURE:
+                   . <- v2
+                  /|\
+                 / | \ 
+                /  |  \
+               / e0|   \
+              /    |    \
+        v3 ->'-----v-----' <- v4
+              \    |    /
+               \ e1|   /
+                \  |  /
+                 \ | /
+                  \|/
+                   ' <-v1
+    */
+
+    //set faces' halfedges to h1 and h2 just in case
+    h1->face()->halfedge() = h1;
+    h1_twin->face()->halfedge() = h1_twin;
+
     VertexIter v1 = h1->vertex();
     VertexIter v2 = h1_twin->vertex();
+    VertexIter v3 = h1->next()->twin()->vertex();
+    VertexIter v4 = h1_twin->next()->twin()->vertex();
 
     //new vertex added to midpoint
     VertexIter v = newVertex();
-    v->position = 0.5 * (v1->position + v2->position);
+    v->position = e0->centroid();
+    v->halfedge() = h1;
 
-    //create new edge and two new halfedges
+    //create 2 new faces
+    FaceIter f1 = newFace();
+    FaceIter f2 = newFace();
+
+    //this new edge goes along half of the original e0
+    HalfedgeIter h2 = newHalfedge();
+    HalfedgeIter h2_twin = newHalfedge();
     EdgeIter e1 = newEdge();
-    HalfedgeIter h2 = newHalfedge(); //pointing in same direction as h1
-    HalfedgeIter h2_twin = newHalfedge(); 
-
-    h2->twin() = h2_twin;
-    h2->next() = h1;
-    h2->vertex() = v1;
-    h2->edge() = e1;
-    h2->face() = h1->face();
-
-    h2_twin->twin() = h2;
-    h2_twin->next() = h1_twin->next();
-    h2_twin->vertex() = v;
-    h2_twin->edge() = e1;
-    h2_twin->face() = h1_twin->face();
-
     e1->halfedge() = h2;
 
-    //modify the old halfedges
-    h1->vertex() = v;
-    h1_twin->next = h2_twin;
+    h2->setNeighbors(h1, h2_twin, v1, e1, f1);
+    h2_twin->setNeighbors(h1_twin->next(), h2, v, e1, f2);
 
-    return VertexIter();
+    h1->next()->next()->face() = f1;
+    f1->halfedge() = h2;
+
+    h2_twin->next()->face() = f2;
+    f2->halfedge() = h2_twin;
+
+    h1->vertex() = v;
+    h1->next()->next()->next() = h2;
+    h1_twin->next() = h2_twin;
+
+    //this new edge splits the old face of h1
+    HalfedgeIter split1 = newHalfedge();
+    HalfedgeIter split1_twin = newHalfedge();
+    EdgeIter f1_split = newEdge();
+    f1_split->halfedge() = split1;
+
+    split1->setNeighbors(h1, split1_twin, v3, f1_split, h1->face());
+    split1_twin->setNeighbors(h1->next()->next(), split1, v, f1_split, f1);
+
+    h2->next() = split1_twin;
+    h1->next()->next() = split1;
+    
+    //this new edge splits the old face of h1's twin
+    HalfedgeIter split2 = newHalfedge();
+    HalfedgeIter split2_twin = newHalfedge();
+    EdgeIter f2_split = newEdge();
+    f2_split->halfedge() = split2;
+    f2->halfedge() = split2_twin;
+
+    split2->setNeighbors(h2_twin->next()->next(), split2_twin, v, 
+            f2_split, h1_twin->face());
+    split2_twin->setNeighbors(h2->twin(), split2, v4, f2_split, f2);
+
+    h1_twin->next() = split2;
+    h2_twin->next()->next() = split2_twin;
+
+    checkConsistency();
+
+    return v;
 }
 
 VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
-  // TODO: (meshEdit)
-  // This method should collapse the given edge and return an iterator to
-  // the new vertex created by the collapse.
+    // This method should collapse the given edge and return an iterator to
+    // the new vertex created by the collapse.
+    HalfedgeIter h = e->halfedge();
+    HalfedgeIter h_twin = h->twin();
 
-  showError("collapseEdge() not implemented.");
-  return VertexIter();
+    VertexIter v1 = h->vertex();
+    VertexIter v2 = h_twin->vertex(); // to be deleted
+
+    v1->position = e->centroid();
+
+    OutputDebugStringA("a\n");
+
+   // HalfedgeIter temp1, temp2;
+
+    /*
+    if (isTriangle(h->face())) {
+        deleteEdge(h->next()->edge());
+        OutputDebugStringA("b\n");
+    }*/
+
+    checkConsistency();
+
+    /*
+    if (isTriangle(h_twin->face())) {
+        deleteEdge(h_twin->next()->edge());
+        OutputDebugStringA("c\n");
+    }*/
+
+    /*
+    HalfedgeIter v1_iter = v1->halfedge();
+    HalfedgeIter v2_iter = v2->halfedge();
+
+    do {
+        if (v1_iter != h) {
+            v1_iter->vertex() = v;
+            v1_iter = v1_iter->twin()->next();
+        }
+    } while (v1_iter != v1->halfedge());
+
+    do {
+        if (v2_iter != h_twin) {
+            v2_iter->vertex() = v;
+            v2_iter = v2_iter->twin()->next();
+        }
+    } while (v2_iter != v2->halfedge());
+   
+    deleteVertex(v1);
+    deleteVertex(v2);
+
+    checkConsistency();
+
+    return v;
+    */
+
+    return v1;
 }
 
 VertexIter HalfedgeMesh::collapseFace(FaceIter f) {
@@ -74,12 +185,61 @@ FaceIter HalfedgeMesh::eraseVertex(VertexIter v) {
 }
 
 FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
-  // TODO: (meshEdit)
-  // This method should erase the given edge and return an iterator to the
-  // merged face.
+    // This method should erase the given edge and return an iterator to the
+    // merged face.
 
-  showError("eraseVertex() not implemented.");
-  return FaceIter();
+    if (e->isBoundary()) {
+        return e->halfedge()->face();
+    }
+
+    HalfedgeIter h = e->halfedge();
+    HalfedgeIter h_twin = h->twin();
+
+    VertexIter v1 = h->vertex();
+    VertexIter v2 = h_twin->vertex();
+
+    FaceIter f1 = h->face();
+    FaceIter f2 = h_twin->face(); // to be deleted
+
+    //if we have 2 edges in a row both bounded by the same 2 faces, do nothing
+    if (h->next()->twin()->next() == h_twin ||
+        h_twin->next()->twin()->next() == h) {
+        return f2;
+    }
+
+    HalfedgeIter v1_halfedge1 = h_twin->next(); //out of v1
+    HalfedgeIter v1_halfedge2 = h; //into v1
+
+    do {
+        v1_halfedge2 = v1_halfedge2->next();
+    } while (v1_halfedge2->next() != h);
+
+    HalfedgeIter v2_halfedge1 = h->next(); //out of v2
+    HalfedgeIter v2_halfedge2 = h_twin; //into v2
+
+    do {
+        v2_halfedge2 = v2_halfedge2->next();
+        v2_halfedge2->face() = f1;
+    } while (v2_halfedge2->next() != h_twin);
+
+    v1_halfedge2->next() = v1_halfedge1;
+    v2_halfedge2->next() = v2_halfedge1;
+    
+    //in case v1's halfedge is h or v2's halfedge is h_twin
+    v1->halfedge() = v1_halfedge1;
+    v2->halfedge() = v2_halfedge1;
+
+    //in case f1's halfedge is h
+    f1->halfedge() = v1_halfedge1;
+
+    deleteFace(f2);
+    deleteEdge(e);
+    deleteHalfedge(h);
+    deleteHalfedge(h_twin);
+    
+    checkConsistency();
+
+    return f1;
 }
 
 EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
@@ -314,8 +474,10 @@ FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
   // HalfedgeMesh::bevelFaceComputeNewPositions (which you also have to
   // implement!)
 
-  showError("bevelFace() not implemented.");
-  return facesBegin();
+    HalfedgeIter start = f->halfedge();
+    FaceIter new_face = newFace();
+  
+    return facesBegin();
 }
 
 

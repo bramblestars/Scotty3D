@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "error_dialog.h"
+#include <windows.h>
 
 namespace CMU462 {
 
@@ -516,7 +517,7 @@ void Vertex::getNeighborhood(map<HalfedgeIter, double>& seen, int depth) {
     VertexIter u = h->twin()->vertex();
     auto d = seen.find(u->halfedge());
     if (d != seen.end()) {
-      dist = std::min(d->second + (u->position - position).norm(), dist);
+      dist = min(d->second + (u->position - position).norm(), dist);
     }
     h = h->twin()->next();
   } while (h != _halfedge);
@@ -880,7 +881,7 @@ void HalfedgeMesh::checkConsistency() const {
 	// Check whether each halfedge's twin does not point to itself
 	for (HalfedgeCIter h = halfedgesBegin(); h != halfedgesEnd(); h++) {
 		if (h->twin() == h) {
-			cerr << "halfedge's twin points to itself!" << endl;
+			OutputDebugStringA( "halfedge's twin points to itself!" );
 			exit(1);
 		}
 	}
@@ -888,7 +889,7 @@ void HalfedgeMesh::checkConsistency() const {
 	// Check whether each halfedge's twin's twin points to itself
 	for (HalfedgeCIter h = halfedgesBegin(); h != halfedgesEnd(); h++) {
 		if (h->twin()->twin() != h) {
-			cerr << "halfedge's twin's twin does not point to itself!" << endl;
+			OutputDebugStringA ( "halfedge's twin's twin does not point to itself!" );
 			exit(1);
 		}
 	}
@@ -900,7 +901,7 @@ void HalfedgeMesh::checkConsistency() const {
 			halfedgeCounter[h->next()] = true;
 
 		} else {
-			cerr << "halfedge is pointed to by more than one halfedge's next!" << endl;
+			OutputDebugStringA ( "halfedge is pointed to by more than one halfedge's next!" );
 			exit(1);
 		}
 	}
@@ -910,7 +911,8 @@ void HalfedgeMesh::checkConsistency() const {
 		HalfedgeCIter h = v->halfedge();
 		do {
 			if (h->vertex() != v) {
-				cerr << "halfedge incident on vertex does not point to that vertex!" << endl;
+
+				OutputDebugStringA ( "halfedge incident on vertex does not point to that vertex!" );
 				exit(1);
 			}
 
@@ -923,7 +925,7 @@ void HalfedgeMesh::checkConsistency() const {
 		HalfedgeCIter h = e->halfedge();
 		do {
 			if (h->edge() != e) {
-				cerr << "halfedge incident on edge does not point to that edge!" << endl;
+				OutputDebugStringA ( "halfedge incident on edge does not point to that edge!" );
 				exit(1);
 			}
 
@@ -936,7 +938,7 @@ void HalfedgeMesh::checkConsistency() const {
 		HalfedgeCIter h = f->halfedge();
 		do {
 			if (h->face() != f) {
-				cerr << "halfedge incident on face does not point to that face!" << endl;
+				OutputDebugStringA ( "halfedge incident on face does not point to that face!" );
 				exit(1);
 			}
 
@@ -949,7 +951,7 @@ void HalfedgeMesh::checkConsistency() const {
 		HalfedgeCIter h = b->halfedge();
 		do {
 			if (h->face() != b) {
-				cerr << "halfedge incident on boundary loop does not point to that boundary loop!" << endl;
+				OutputDebugStringA ( "halfedge incident on boundary loop does not point to that boundary loop!" );
 				exit(1);
 			}
 
@@ -957,7 +959,7 @@ void HalfedgeMesh::checkConsistency() const {
 		} while (h != b->halfedge());
 	}
 
-	cout << "All consistency checks passed" << endl;
+	OutputDebugStringA( "All consistency checks passed" );
 }
 
 }  // namespace CMU462
