@@ -318,10 +318,48 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
     HalfedgeIter h = e0->halfedge();
     HalfedgeIter h_twin = h->twin();
 
-    FaceIter f1 = h->face();
-    FaceIter f2 = h_twin->face();
+    // original endpoints of the edge
+    VertexIter v1 = h->vertex();
+    VertexIter v2 = h_twin->vertex();
 
-    return e0;
+    // edges that will be affected
+    HalfedgeIter v2v3 = h->next();
+    HalfedgeIter v1v4 = h_twin->next();
+    HalfedgeIter v3_out = h->next()->next();
+    HalfedgeIter v4_out = h_twin->next()->next();
+
+    // new endpoints of the edge
+    VertexIter v3 = h->next()->twin()->vertex();
+    VertexIter v4 = h_twin->next()->twin()->vertex();
+
+    eraseEdge(e0);
+
+    EdgeIter e = newEdge();
+    FaceIter f = newFace(); //touching h1, since eraseEdge erased one face
+    HalfedgeIter h1 = newHalfedge(); //v4v3
+    HalfedgeIter h1_twin = newHalfedge(); //v3v4
+
+    e->halfedge() = h1;
+    f->halfedge() = h1;
+    h1->setNeighbors(v3_out, h1_twin, v4, e, f);
+    h1_twin->setNeighbors(v4_out, h1, v3, e, v4_out->face());
+
+    v4_out->face()->halfedge() = h1_twin;
+
+    v1v4->next() = h1;
+    v2v3->next() = h1_twin;
+
+    //set halfedges to new face
+    HalfedgeIter iter = h1;
+
+    do {
+        iter = iter->next();
+        iter->face() = f;
+    } while (iter != h1);
+
+    checkConsistency();
+
+    return e;
 }
 
 void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
