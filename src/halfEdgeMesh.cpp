@@ -968,7 +968,7 @@ void HalfedgeMesh::checkConsistency() const {
 		} while (h != b->halfedge());
 	}
 
-	OutputDebugStringA( "All consistency checks passed" );
+	OutputDebugStringA( "All consistency checks passed\n" );
 }
 
 }  // namespace CMU462
