@@ -672,7 +672,7 @@ FaceIter HalfedgeMesh::bevelFace(FaceIter f) {
         f_halfedges[i]->next() = h_radial[i];
         f_halfedges[i]->face() = f_new[i];
 
-        v[i]->halfedge() = h_parallel[i];
+        v[i]->halfedge() = h_radial_twins[i];
         f_new[i]->halfedge() = h_radial[i];
 
         e_radial[i]->halfedge() = h_radial[i];
@@ -723,16 +723,36 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
     // }
     //
 
-    Vector3D vec_next, vec_prev;
-    float angle;
+    Vector3D vec_next, vec_prev, vec_center;
+    Vector3D f_center;
+    Vector3D f_normal = newHalfedges[0]->next()->next()->next()->twin()->face()->normal();
+
+    double angle;
     size_t deg = originalVertexPositions.size();
+    VertexIter curr_v, prev_v, next_v;
+    double shift;
+
+
 
     for (size_t i = 0; i < deg; i++) {
-        vec_next = originalVertexPositions[(i + 1L) % deg] - originalVertexPositions[i];
-        vec_prev = originalVertexPositions[i] - originalVertexPositions[(i - 1L) % deg];
-        angle = acos(dot(vec_next, vec_prev) / (vec_next.norm() * vec_prev.norm()));
 
-        newHalfedges[i]->vertex()->position = originalVertexPositions[i] + tangentialInset;
+        // somehow my vertices' indexing ended up one off for whatever reason
+        assert(originalVertexPositions[i] ==
+            newHalfedges[(i + deg - 1) % deg]->twin()->vertex()->position);
+
+        curr_v = newHalfedges[(i + deg - 1) % deg]->vertex();
+        prev_v = newHalfedges[(i + deg - 2) % deg]->vertex();
+        next_v = newHalfedges[i]->vertex();
+
+        vec_next = next_v->position - curr_v->position;
+        vec_prev = prev_v->position - curr_v->position;
+        vec_center = vec_center - curr_v->position;
+
+        angle = acos(dot(vec_prev, vec_next) / (vec_next.norm() * vec_prev.norm()));
+
+        shift = tangentialInset / sin(angle / 2);
+
+        curr_v->position = originalVertexPositions[i] + normalShift;
 
     }
 
