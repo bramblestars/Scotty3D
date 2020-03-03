@@ -4,7 +4,6 @@
 #include "meshEdit.h"
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
-#include <windows.h>
 
 namespace CMU462 {
 
@@ -357,7 +356,7 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
     HalfedgeIter h = e0->halfedge();
     HalfedgeIter h_twin = h->twin();
 
-    if (h->vertex()->degree() == 1 || h_twin->vertex()->degree() == 1) {
+    if (h->face() == h_twin->face()) {
         return e0;
     }
 
@@ -729,12 +728,14 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
 
     size_t deg = originalVertexPositions.size();
     
-    char s[32];
-
     Vector3D vec_next, vec_prev, vec_center;
-    Vector3D f_center = 
-        newHalfedges[0]->twin()->next()->twin()->face()->centroid();
+    Vector3D f_center = 0;
     Vector3D f_normal;
+
+    for (size_t i = 0; i < deg; i++) {
+        f_center += originalVertexPositions[i];
+    }
+    f_center *= 1.0 / (double)deg;
 
     double angle;
     VertexIter curr_v;
@@ -752,19 +753,19 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
             - originalVertexPositions[i];
         vec_prev = originalVertexPositions[(i + deg - 1) % deg] 
             - originalVertexPositions[i];
-        vec_center = curr_v->position - f_center;
+        vec_center = f_center - curr_v->position;
 
-        angle = asin(cross(vec_prev, vec_next).norm() / (vec_next.norm() * vec_prev.norm()));
+        angle = asin(cross(vec_prev, vec_next).norm() / 
+            (vec_next.norm() * vec_prev.norm()));
         f_normal = cross(vec_prev, vec_next)/cross(vec_prev, vec_next).norm();
 
-        shift = tangentialInset / sin(angle / 2);
+        shift = (tangentialInset / sin(angle / 2.0)) / vec_center.norm();
 
         curr_v->position = originalVertexPositions[i];
         curr_v->position += shift * vec_center;
         curr_v->position += normalShift * f_normal;
 
     }
-
 
 }
 

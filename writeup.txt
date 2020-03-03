@@ -1,0 +1,31 @@
+Tracy Cui
+xichenc
+MeshEdit checkpoint writeup
+
+EdgeSplit: fully implemented
+ - splits an edge only when adjacent faces are triangles (except outer face)
+ - splits boundary edges properly
+
+EdgeFlip: fully implemented
+ - does nothing when selected edge is incident to a single face (resulting from EraseEdge)
+   ex. 
+         /\
+        /_ \
+        \  /
+         \/
+          
+ - behavior might be strange if one of the selected edge's degree is 2 (resulting from EraseEdge),
+   but not unexpected
+
+EdgeCollapse: fully implemented
+ - does nothing when selected edge is incident to a single face
+
+FaceBevel: fully implemented
+ - I wasn't able to call the face's centroid and normal without issue, so I calculated them myself
+   using the original vertex positions and using two edges' cross products, respectively, in calculating the new
+   vertex positions.
+
+EraseEdge: fully implemented
+ - does nothing when selected edge is incident to a single face, and both of its degrees is 2. 
+ - however, does handle cases where there exists a vertex of degree 1, and allows you to delete such edges
+ - if there is a path sticking out into a face with all edges incident to that single face, must delete edges starting from the end of the path. 
