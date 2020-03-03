@@ -357,6 +357,10 @@ EdgeIter HalfedgeMesh::flipEdge(EdgeIter e0) {
     HalfedgeIter h = e0->halfedge();
     HalfedgeIter h_twin = h->twin();
 
+    if (h->vertex()->degree() == 1 || h_twin->vertex()->degree() == 1) {
+        return e0;
+    }
+
     // original endpoints of the edge
     VertexIter v1 = h->vertex();
     VertexIter v2 = h_twin->vertex();
@@ -723,16 +727,18 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
     // }
     //
 
+    size_t deg = originalVertexPositions.size();
+    
+    char s[32];
+
     Vector3D vec_next, vec_prev, vec_center;
-    Vector3D f_center;
-    Vector3D f_normal = newHalfedges[0]->next()->next()->next()->twin()->face()->normal();
+    Vector3D f_center = 
+        newHalfedges[0]->twin()->next()->twin()->face()->centroid();
+    Vector3D f_normal;
 
     double angle;
-    size_t deg = originalVertexPositions.size();
-    VertexIter curr_v, prev_v, next_v;
+    VertexIter curr_v;
     double shift;
-
-
 
     for (size_t i = 0; i < deg; i++) {
 
@@ -741,18 +747,21 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
             newHalfedges[(i + deg - 1) % deg]->twin()->vertex()->position);
 
         curr_v = newHalfedges[(i + deg - 1) % deg]->vertex();
-        prev_v = newHalfedges[(i + deg - 2) % deg]->vertex();
-        next_v = newHalfedges[i]->vertex();
 
-        vec_next = next_v->position - curr_v->position;
-        vec_prev = prev_v->position - curr_v->position;
-        vec_center = vec_center - curr_v->position;
+        vec_next = originalVertexPositions[(i + 1) % deg] 
+            - originalVertexPositions[i];
+        vec_prev = originalVertexPositions[(i + deg - 1) % deg] 
+            - originalVertexPositions[i];
+        vec_center = curr_v->position - f_center;
 
-        angle = acos(dot(vec_prev, vec_next) / (vec_next.norm() * vec_prev.norm()));
+        angle = asin(cross(vec_prev, vec_next).norm() / (vec_next.norm() * vec_prev.norm()));
+        f_normal = cross(vec_prev, vec_next)/cross(vec_prev, vec_next).norm();
 
         shift = tangentialInset / sin(angle / 2);
 
-        curr_v->position = originalVertexPositions[i] + normalShift;
+        curr_v->position = originalVertexPositions[i];
+        curr_v->position += shift * vec_center;
+        curr_v->position += normalShift * f_normal;
 
     }
 
