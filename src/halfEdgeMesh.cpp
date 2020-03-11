@@ -933,7 +933,7 @@ void HalfedgeMesh::checkConsistency() const {
 		do {
 			if (h->edge() != e) {
                 OutputDebugStringA("halfedge incident on edge does not point to that edge!");
-				exit(1);
+                exit(1);
 			}
 
 			h = h->twin();
@@ -955,7 +955,7 @@ void HalfedgeMesh::checkConsistency() const {
 	}
 
 	// Check whether each halfedge incident on a boundary loop points to that boundary loop
-    OutputDebugStringA("checking boundary loops\n");
+    OutputDebugStringA("checking boundary loopsfF\n");
 	for (FaceCIter b = boundariesBegin(); b != boundariesEnd(); b++) {
 		HalfedgeCIter h = b->halfedge();
 		do {

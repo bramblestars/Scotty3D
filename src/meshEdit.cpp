@@ -10,7 +10,7 @@
 namespace CMU462 {
 
 bool isTriangle(FaceIter f) {
-    return f->halfedge()->next()->next()->next() == f->halfedge();
+    return f->degree() == 3;
 }
 
 VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
@@ -489,16 +489,28 @@ void HalfedgeMesh::subdivideQuad(bool useCatmullClark) {
  * centroids.
  */
 void HalfedgeMesh::computeLinearSubdivisionPositions() {
-  // TODO For each vertex, assign Vertex::newPosition to
-  // its original position, Vertex::position.
+    // TODO For each vertex, assign Vertex::newPosition to
+    // its original position, Vertex::position.
 
-  // TODO For each edge, assign the midpoint of the two original
-  // positions to Edge::newPosition.
+    // TODO For each edge, assign the midpoint of the two original
+    // positions to Edge::newPosition.
 
-  // TODO For each face, assign the centroid (i.e., arithmetic mean)
-  // of the original vertex positions to Face::newPosition.  Note
-  // that in general, NOT all faces will be triangles!
-  showError("computeLinearSubdivisionPositions() not implemented.");
+    // TODO For each face, assign the centroid (i.e., arithmetic mean)
+    // of the original vertex positions to Face::newPosition.  Note
+    // that in general, NOT all faces will be triangles!
+  
+    for (VertexIter v = verticesBegin(); v != verticesEnd(); v++) {
+        v->newPosition = v->position;
+    }
+
+    for (EdgeIter e = edgesBegin(); e != edgesEnd(); e++) {
+        e->newPosition = e->centroid();
+    }
+
+    for (FaceIter f = facesBegin(); f != facesEnd(); f++) {
+        f->newPosition = f->centroid();
+    }
+
 }
 
 /**
@@ -510,18 +522,17 @@ void HalfedgeMesh::computeLinearSubdivisionPositions() {
  * the Catmull-Clark rules for subdivision.
  */
 void HalfedgeMesh::computeCatmullClarkPositions() {
-  // TODO The implementation for this routine should be
-  // a lot like HalfedgeMesh::computeLinearSubdivisionPositions(),
-  // except that the calculation of the positions themsevles is
-  // slightly more involved, using the Catmull-Clark subdivision
-  // rules. (These rules are outlined in the Developer Manual.)
+    // The implementation for this routine should be
+    // a lot like HalfedgeMesh::computeLinearSubdivisionPositions(),
+    // except that the calculation of the positions themsevles is
+    // slightly more involved, using the Catmull-Clark subdivision
+    // rules. (These rules are outlined in the Developer Manual.)
 
-  // TODO face
+    // TODO face
 
-  // TODO edges
+    // TODO edges
 
-  // TODO vertices
-  showError("computeCatmullClarkPositions() not implemented.");
+    // TODO vertices
 }
 
 /**
@@ -832,7 +843,6 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
     start->next()->next() = new_h;
     new_h->setNeighbors(start, new_twin, temp->vertex(), new_edge, f);
     new_twin->setNeighbors(temp, new_h, start->vertex(), new_edge, new_face);
-    new_face->halfedge() = new_twin;
 
     while (temp->next() != start) {
         temp->face() = new_face;
@@ -843,6 +853,8 @@ void HalfedgeMesh::splitPolygon(FaceIter f) {
 
     temp->face() = new_face;
     temp->next() = new_twin;
+
+    new_face->halfedge() = temp->next()->next();
 
     checkConsistency();
 
