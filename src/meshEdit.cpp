@@ -5,6 +5,8 @@
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
 
+#include<windows.h>
+
 namespace CMU462 {
 
 bool isTriangle(FaceIter f) {
@@ -813,9 +815,38 @@ void HalfedgeMesh::splitPolygons(vector<FaceIter>& fcs) {
 }
 
 void HalfedgeMesh::splitPolygon(FaceIter f) {
-  // TODO: (meshedit) 
-  // Triangulate a polygonal face
-  showError("splitPolygon() not implemented.");
+    // TODO: (meshedit) 
+    // Triangulates a polygonal face recursively
+
+    if (f->degree() == 3) return;
+
+    HalfedgeIter start = f->halfedge();
+    HalfedgeIter temp = start->next()->next();
+
+    FaceIter new_face = newFace();
+    EdgeIter new_edge = newEdge();
+    HalfedgeIter new_h = newHalfedge();
+    HalfedgeIter new_twin = newHalfedge();
+
+    new_edge->halfedge() = new_h;
+    start->next()->next() = new_h;
+    new_h->setNeighbors(start, new_twin, temp->vertex(), new_edge, f);
+    new_twin->setNeighbors(temp, new_h, start->vertex(), new_edge, new_face);
+    new_face->halfedge() = new_twin;
+
+    while (temp->next() != start) {
+        temp->face() = new_face;
+        temp = temp->next();
+    }
+
+    assert(temp->next() == start);
+
+    temp->face() = new_face;
+    temp->next() = new_twin;
+
+    checkConsistency();
+
+    splitPolygon(new_face);
 }
 
 EdgeRecord::EdgeRecord(EdgeIter& _edge) : edge(_edge) {
