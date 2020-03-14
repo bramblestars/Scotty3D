@@ -1027,7 +1027,7 @@ void MeshResampler::upsample(HalfedgeMesh& mesh)
         v->newPosition = (1 - n * u) * old_pos + u * pos_neighbors;
     }
 
-
+    // update new edge positions
     VertexIter A, B, C, D; // A, B are adjacent, C, D are opposite
     for (EdgeIter e = mesh.edgesBegin(); e != mesh.edgesEnd(); e++) {
         A = e->halfedge()->vertex();
@@ -1045,7 +1045,7 @@ void MeshResampler::upsample(HalfedgeMesh& mesh)
     }
 
 
-
+    // split every edge that is adjacent to a new and old vertex
     // from Loop Subdivision developer's guide
     int num_edges = mesh.nEdges();
     EdgeIter e = mesh.edgesBegin();
@@ -1076,41 +1076,42 @@ void MeshResampler::upsample(HalfedgeMesh& mesh)
     for (VertexIter v = mesh.verticesBegin(); v != mesh.verticesEnd(); v++) {
         v->position = v->newPosition;
     }
-
-    // showError("upsample() not implemented.");
 }
 
 void MeshResampler::downsample(HalfedgeMesh& mesh) {
-  // TODO: (meshEdit)
-  // Compute initial quadrics for each face by simply writing the plane equation
-  // for the face in homogeneous coordinates. These quadrics should be stored
-  // in Face::quadric
-  // -> Compute an initial quadric for each vertex as the sum of the quadrics
-  //    associated with the incident faces, storing it in Vertex::quadric
-  // -> Build a priority queue of edges according to their quadric error cost,
-  //    i.e., by building an EdgeRecord for each edge and sticking it in the
-  //    queue.
-  // -> Until we reach the target edge budget, collapse the best edge. Remember
-  //    to remove from the queue any edge that touches the collapsing edge
-  //    BEFORE it gets collapsed, and add back into the queue any edge touching
-  //    the collapsed vertex AFTER it's been collapsed. Also remember to assign
-  //    a quadric to the collapsed vertex, and to pop the collapsed edge off the
-  //    top of the queue.
-  showError("downsample() not implemented.");
+    // TODO: (meshEdit)
+    // Compute initial quadrics for each face by simply writing the plane equation
+    // for the face in homogeneous coordinates. These quadrics should be stored
+    // in Face::quadric
+    // -> Compute an initial quadric for each vertex as the sum of the quadrics
+    //    associated with the incident faces, storing it in Vertex::quadric
+    // -> Build a priority queue of edges according to their quadric error cost,
+    //    i.e., by building an EdgeRecord for each edge and sticking it in the
+    //    queue.
+    // -> Until we reach the target edge budget, collapse the best edge. Remember
+    //    to remove from the queue any edge that touches the collapsing edge
+    //    BEFORE it gets collapsed, and add back into the queue any edge touching
+    //    the collapsed vertex AFTER it's been collapsed. Also remember to assign
+    //    a quadric to the collapsed vertex, and to pop the collapsed edge off the
+    //    top of the queue.
+
+
+
+    showError("downsample() not implemented.");
 }
 
 void MeshResampler::resample(HalfedgeMesh& mesh) {
-  // TODO: (meshEdit)
-  // Compute the mean edge length.
-  // Repeat the four main steps for 5 or 6 iterations
-  // -> Split edges much longer than the target length (being careful about
-  //    how the loop is written!)
-  // -> Collapse edges much shorter than the target length.  Here we need to
-  //    be EXTRA careful about advancing the loop, because many edges may have
-  //    been destroyed by a collapse (which ones?)
-  // -> Now flip each edge if it improves vertex degree
-  // -> Finally, apply some tangential smoothing to the vertex positions
-  showError("resample() not implemented.");
+    // TODO: (meshEdit)
+    // Compute the mean edge length.
+    // Repeat the four main steps for 5 or 6 iterations
+    // -> Split edges much longer than the target length (being careful about
+    //    how the loop is written!)
+    // -> Collapse edges much shorter than the target length.  Here we need to
+    //    be EXTRA careful about advancing the loop, because many edges may have
+    //    been destroyed by a collapse (which ones?)
+    // -> Now flip each edge if it improves vertex degree
+    // -> Finally, apply some tangential smoothing to the vertex positions
+    showError("resample() not implemented.");
 }
 
 }  // namespace CMU462
