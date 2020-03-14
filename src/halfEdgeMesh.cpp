@@ -955,7 +955,7 @@ void HalfedgeMesh::checkConsistency() const {
 	}
 
 	// Check whether each halfedge incident on a boundary loop points to that boundary loop
-    OutputDebugStringA("checking boundary loopsfF\n");
+    OutputDebugStringA("checking boundary loops\n");
 	for (FaceCIter b = boundariesBegin(); b != boundariesEnd(); b++) {
 		HalfedgeCIter h = b->halfedge();
 		do {
