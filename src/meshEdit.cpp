@@ -158,12 +158,12 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
     HalfedgeIter h = e->halfedge();
     HalfedgeIter h_twin = h->twin();
 
+    if (h->face() == h_twin->face()) {
+        return h->vertex();
+    }
+
     VertexIter v1 = h->vertex();
     VertexIter v2 = h_twin->vertex(); // to be deleted
-
-    if (v1->degree() == 1 || v2->degree() == 1) {
-        return v1;
-    }
 
     v1->position = e->centroid();
 
@@ -249,19 +249,67 @@ VertexIter HalfedgeMesh::collapseEdge(EdgeIter e) {
 }
 
 VertexIter HalfedgeMesh::collapseFace(FaceIter f) {
-  // TODO: (meshEdit)
-  // This method should collapse the given face and return an iterator to
-  // the new vertex created by the collapse.
-  showError("collapseFace() not implemented.");
-  return VertexIter();
+    // This method should collapse the given face and return an iterator to
+    // the new vertex created by the collapse.
+
+    Vector3D new_position = f->centroid();
+    VertexIter v1 = f->halfedge()->vertex();
+
+    HalfedgeIter curr = f->halfedge(); 
+    do {
+        if (curr->twin()->face() == f) {
+            showError("delete rogue edge before collapsing face!");
+            return curr->vertex();
+        }
+        curr = curr->next();
+    } while (curr != f->halfedge());
+
+    while (!isTriangle(f)) {
+        v1 = collapseEdge(f->halfedge()->edge());
+    }
+
+    HalfedgeIter opposite = f->halfedge();
+
+    while (opposite->next()->twin()->vertex() != v1) {
+        opposite = opposite->next();
+    }
+
+    VertexIter v2 = collapseEdge(opposite->edge());
+
+    while (v2->halfedge()->twin()->vertex() != v1) {
+        v2->halfedge() = v2->halfedge()->twin()->next();
+    }
+
+    v1 = collapseEdge(v2->halfedge()->edge());
+    v1->position = new_position;
+
+    return v1;
+    
 }
 
 FaceIter HalfedgeMesh::eraseVertex(VertexIter v) {
-  // TODO: (meshEdit)
-  // This method should replace the given vertex and all its neighboring
-  // edges and faces with a single face, returning the new face.
+    // This method should replace the given vertex and all its neighboring
+    // edges and faces with a single face, returning the new face.
 
-  return FaceIter();
+    if (v->isBoundary()) {
+        return v->halfedge()->face();
+    }
+
+    HalfedgeIter start = v->halfedge();
+    HalfedgeIter curr = v->halfedge()->twin()->next();
+    HalfedgeIter temp = curr;
+
+    while (curr != start) {
+        temp = curr;
+        curr = curr->twin()->next();
+        eraseEdge(temp->edge());
+    }
+
+    FaceIter f = v->halfedge()->face();
+
+    eraseEdge(v->halfedge()->edge());
+
+    return f;
 }
 
 FaceIter HalfedgeMesh::eraseEdge(EdgeIter e) {
@@ -723,15 +771,56 @@ void HalfedgeMesh::buildSubdivisionFaceList(vector<vector<Index> >& subDFaces) {
 }
 
 FaceIter HalfedgeMesh::bevelVertex(VertexIter v) {
-  // TODO This method should replace the vertex v with a face, corresponding to
-  // a bevel operation. It should return the new face.  NOTE: This method is
-  // responsible for updating the *connectivity* of the mesh only---it does not
-  // need to update the vertex positions.  These positions will be updated in
-  // HalfedgeMesh::bevelVertexComputeNewPositions (which you also have to
-  // implement!)
+    // This method should replace the vertex v with a face, corresponding to
+    // a bevel operation. It should return the new face.  NOTE: This method is
+    // responsible for updating the *connectivity* of the mesh only---it does not
+    // need to update the vertex positions.  These positions will be updated in
+    // HalfedgeMesh::bevelVertexComputeNewPositions (which you also have to
+    // implement!)
 
-  showError("bevelVertex() not implemented.");
-  return facesBegin();
+    int deg = v->degree();
+    HalfedgeIter start = v->halfedge();
+    HalfedgeIter prev = start;
+    HalfedgeIter curr = start->twin()->next();
+    vector<VertexIter> v_new;
+    EdgeIter e_new;
+    HalfedgeIter outer;
+    vector<HalfedgeIter> inner;
+    FaceIter f = newFace();
+
+    for (size_t i = 0; i < deg; i++) {
+        v_new.push_back(newVertex());
+        inner.push_back(newHalfedge());
+    }
+
+    for (size_t i = 0; i < deg; i++) {
+        assert(prev->twin()->next() == curr);
+
+        e_new = newEdge();
+        outer = newHalfedge();
+
+        prev->vertex() = v_new[i];
+        v_new[i]->halfedge() = prev;
+        e_new->halfedge() = outer;
+
+        outer->setNeighbors(curr, inner[i], 
+            v_new[i], e_new, prev->twin()->face());
+        inner[i]->setNeighbors(inner[(i - 1 + deg) % deg], outer, 
+            v_new[(i + 1) % deg], e_new, f);
+
+        prev->twin()->next() = outer;
+
+        prev = curr;
+        curr = curr->twin()->next();
+    }
+
+    f->halfedge() = inner[0];
+
+    assert(prev == start);
+
+    deleteVertex(v);
+
+    return f;
 }
 
 FaceIter HalfedgeMesh::bevelEdge(EdgeIter e) {
@@ -899,14 +988,29 @@ void HalfedgeMesh::bevelFaceComputeNewPositions(
 void HalfedgeMesh::bevelVertexComputeNewPositions(
     Vector3D originalVertexPosition, vector<HalfedgeIter>& newHalfedges,
     double tangentialInset) {
-  // TODO Compute new vertex positions for the vertices of the beveled vertex.
-  //
-  // These vertices can be accessed via newHalfedges[i]->vertex()->position for
-  // i = 1, ..., hs.size()-1.
-  //
-  // The basic strategy here is to loop over the list of outgoing halfedges,
-  // and use the preceding and next vertex position from the original mesh
-  // (in the orig array) to compute an offset vertex position.
+    // Compute new vertex positions for the vertices of the beveled vertex.
+    //
+    // These vertices can be accessed via newHalfedges[i]->vertex()->position for
+    // i = 1, ..., hs.size()-1.
+    //
+    // The basic strategy here is to loop over the list of outgoing halfedges,
+    // and use the preceding and next vertex position from the original mesh
+    // (in the orig array) to compute an offset vertex position.
+
+    size_t size = newHalfedges.size();
+
+    Vector3D radial_vec;
+
+
+    for (size_t i = 0; i < size; i++) {
+        
+        radial_vec = newHalfedges[i]->twin()->vertex()->position
+            - newHalfedges[i]->vertex()->position;
+
+        newHalfedges[i]->vertex()->position = originalVertexPosition
+            + (tangentialInset / radial_vec.norm() *  radial_vec );
+
+    }
 
 }
 
@@ -1095,8 +1199,6 @@ void MeshResampler::downsample(HalfedgeMesh& mesh) {
     //    a quadric to the collapsed vertex, and to pop the collapsed edge off the
     //    top of the queue.
 
-
-
     showError("downsample() not implemented.");
 }
 
@@ -1107,7 +1209,7 @@ void MeshResampler::resample(HalfedgeMesh& mesh) {
     // -> Split edges much longer than the target length (being careful about
     //    how the loop is written!)
     // -> Collapse edges much shorter than the target length.  Here we need to
-    //    be EXTRA careful about advancing the loop, because many edges may have
+    //    be EXTRA careful about adFvancing the loop, because many edges may have
     //    been destroyed by a collapse (which ones?)
     // -> Now flip each edge if it improves vertex degree
     // -> Finally, apply some tangential smoothing to the vertex positions
