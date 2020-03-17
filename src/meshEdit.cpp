@@ -5,8 +5,6 @@
 #include "mutablePriorityQueue.h"
 #include "error_dialog.h"
 
-#include<windows.h>
-
 namespace CMU462 {
 
 bool isTriangle(FaceIter f) {
