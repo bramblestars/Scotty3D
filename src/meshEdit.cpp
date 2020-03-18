@@ -146,7 +146,7 @@ VertexIter HalfedgeMesh::splitEdge(EdgeIter e0) {
 
     v->isNew = true;
     v->newPosition = e0->newPosition;
-    
+
     return v;
 }
 
