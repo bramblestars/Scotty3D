@@ -1,12 +1,12 @@
 Tracy Cui
 xichenc
-MeshEdit checkpoint writeup
+MeshEdit writeup
 
-EdgeSplit: fully implemented
+Edge Split: fully implemented
  - splits an edge only when adjacent faces are triangles (except outer face)
  - splits boundary edges properly
 
-EdgeFlip: fully implemented
+Edge Flip: fully implemented
  - does nothing when selected edge is incident to a single face (resulting from EraseEdge)
    ex. 
          /\
@@ -16,16 +16,37 @@ EdgeFlip: fully implemented
           
  - behavior might be strange if one of the selected edge's degree is 2 (resulting from EraseEdge),
    but not unexpected
+ - edited from checkpoint to move existing edge and change connectivity instead of calling eraseEdge and adding new edge
 
-EdgeCollapse: fully implemented
+Edge Collapse: fully implemented
  - does nothing when selected edge is incident to a single face
 
-FaceBevel: fully implemented
+Face Collapse: fully implemented
+ - allows you to collapse a face that collapses the geometry of the mesh
+ - does not allow collapsing a face with rogue edge (both halfedges incident to f)
+
+Face Bevel: fully implemented
  - I wasn't able to call the face's centroid and normal without issue, so I calculated them myself
    using the original vertex positions and using two edges' cross products, respectively, in calculating the new
    vertex positions.
 
-EraseEdge: fully implemented
+Vertex Bevel: fully implemented 
+ - the dragging thing is kind of wonky, so I had trouble testing the computation of new positions. The connectivity should be okay, though.
+
+Erase Edge: fully implemented
  - does nothing when selected edge is incident to a single face, and both of its degrees is 2. 
  - however, does handle cases where there exists a vertex of degree 1, and allows you to delete such edges
- - if there is a path sticking out into a face with all edges incident to that single face, must delete edges starting from the end of the path. 
+ - if there is a path sticking out into a face with all edges incident to that single face, must delete edges starting from the end of the path.
+
+Erase Vertex: fully implemented
+ - does nothing when selected vertex is a boundary vertex
+
+Linear Subdivision: fully implemented
+
+Catmull-Clark Subdivision: fully implemented
+
+Loop Subdivision: fully implemented
+
+
+
+ 
