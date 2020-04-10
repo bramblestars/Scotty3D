@@ -497,14 +497,18 @@ Spectrum PathTracer::trace_ray(const Ray &r) {
 }
 
 Spectrum PathTracer::raytrace_pixel(size_t x, size_t y) {
-  // TODO (PathTracer):
-  // Sample the pixel with coordinate (x,y) and return the result spectrum.
-  // The sample rate is given by the number of camera rays per pixel.
+    // TODO (PathTracer):
+    // Sample the pixel with coordinate (x,y) and return the result spectrum.
+    // The sample rate is given by the number of camera rays per pixel.
 
-  int num_samples = ns_aa;
+    int num_samples = ns_aa;
+    size_t w = sampleBuffer.w;
+    size_t h = sampleBuffer.h;
 
-  Vector2D p = Vector2D(0.5, 0.5);
-  return trace_ray(camera->generate_ray(p.x, p.y));
+    double normalized_x = ((double)x + 0.5) / ((double) w);
+    double normalized_y = ((double)y + 0.5) / ((double) h);
+ 
+    return trace_ray(camera->generate_ray(normalized_x, normalized_y));
 }
 
 void PathTracer::raytrace_tile(int tile_x, int tile_y, int tile_w, int tile_h) {
