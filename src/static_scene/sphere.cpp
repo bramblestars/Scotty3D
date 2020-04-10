@@ -25,7 +25,7 @@ bool Sphere::intersect(const Ray& R) const {
     // From Wikipedia - "Line-Sphere Intersection"
     Vector3D c = o; //origin of sphere
     double under_root = (dot(R.d, R.o - c)) * (dot(R.d, R.o - c))
-        - (((R.o - c).norm) * ((R.o - c).norm) - r * r);
+        - (((R.o - c).norm()) * ((R.o - c).norm()) - r * r);
 
     return under_root > 0;
 }
@@ -39,10 +39,10 @@ bool Sphere::intersect(const Ray& R, Intersection* isect) const {
 
     Vector3D c = o; //origin of sphere
     double under_root = (dot(R.d, R.o - c)) * (dot(R.d, R.o - c))
-        - (((R.o - c).norm) * ((R.o - c).norm) - r * r);
+        - (((R.o - c).norm()) * ((R.o - c).norm()) - r * r);
 
     double t = (-2 * (dot(R.d, R.o - c))) - sqrt(under_root);
-    t /= (2 * R.d.norm2);
+    t /= (2 * R.d.norm2());
 
     Vector3D normal = (R.o + t * R.d) - c;
     normal.normalize();
@@ -53,6 +53,8 @@ bool Sphere::intersect(const Ray& R, Intersection* isect) const {
         isect->t = t;
         isect->bsdf = get_bsdf();
     }
+
+    return under_root > 0;
 }
 
 void Sphere::draw(const Color& c) const { Misc::draw_sphere_opengl(o, r, c); }
