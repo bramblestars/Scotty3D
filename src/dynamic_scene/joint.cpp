@@ -115,8 +115,9 @@ Matrix4x4 Joint::getTransformation() {
   the end.
   */
 
-  Matrix4x4 T = Matrix4x4::identity();
-  return T;
+    Matrix4x4 T = Matrix4x4::identity();
+
+    return T;
 }
 
 Matrix4x4 Joint::getBindTransformation() {
